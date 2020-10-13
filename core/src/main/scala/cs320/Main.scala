@@ -7,7 +7,7 @@ import scala.Console.{MAGENTA => M, CYAN => C, RESET}
 
 object Main {
 
-  val name = "SRBFAE"
+  val name = "SANDBOX"
 
   def main(args: Array[String]): Unit = {
     val terminal = TerminalBuilder.builder.build()

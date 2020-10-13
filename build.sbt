@@ -1,6 +1,6 @@
 ThisBuild / scalaVersion := "2.13.3"
 ThisBuild / organization := "cs320"
-ThisBuild / name := "srbfae"
+ThisBuild / name := "pl-midterm-sandbox"
 ThisBuild / version := "1.0.0"
 
 ThisBuild / scalacOptions += "-feature"
