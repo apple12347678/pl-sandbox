@@ -13,7 +13,7 @@ case class Id(name: String) extends Expr
 // case class Val(name: String, expression: Expr, body: Expr) extends Expr
 case class Fun(param: String, body: Expr) extends Expr
 case class App(fun: Expr, arg: Expr) extends Expr
-case class Seqn(left: Expr, right: List[Expr]) extends Expr
+// case class Seqn(left: Expr, right: List[Expr]) extends Expr
 case class Eq(left: Expr, right: Expr) extends Expr
 case class Lt(left: Expr, right: Expr) extends Expr
 case class If(condition: Expr, trueBranch: Expr, falseBranch: Expr) extends Expr
@@ -60,23 +60,11 @@ object Expr extends RegexParsers {
     rep1sep(e2, "||") ^^ (_.reduceLeft(Or))
 
   private lazy val e2: Parser[Expr] =
-    rep1sep(e4, "&&") ^^ (_.reduceLeft(And))
+    rep1sep(e3, "&&") ^^ (_.reduceLeft(And))
 
-  // private lazy val e3: Parser[Expr] =
-  //   e4 ~ rep(("==" | "!=" | "<=" | "<" | ">=" | ">") ~ e4) ^^ {
-  //     case e ~ es => es.foldLeft(e){
-  //       case (l, "==" ~ r) => Eq(l, r)
-  //       case (l, "!=" ~ r) => Neq(l, r)
-  //       case (l, "<"  ~ r) => Lt(l, r)
-  //       case (l, "<=" ~ r) => Lte(l, r)
-  //       case (l, ">"  ~ r) => Gt(l, r)
-  //       case (l,   _  ~ r) => Gte(l, r)
-  //     }
-  //   }
+  private lazy val e3: Parser[Expr] = "!" ~> e3 ^^ Not | e4
 
-  private lazy val e4: Parser[Expr] = "!" ~> e4 ^^ Not | e5
-
-  private lazy val e5: Parser[Expr] =
+  private lazy val e4: Parser[Expr] =
     x ^^ Id | n ^^ NumE | b ^^ BoolE |
     ("if" ~> wrapR(e)) ~ e ~ ("else" ~> e) ^^ { case c ~ t ~ f => If(c, t, f) } |
     ("val" ~> x <~ "=") ~ e ~ (";" ~> e) ^^ { case x ~ e ~ b => Val(x, e, b) } |
@@ -102,6 +90,13 @@ object Expr extends RegexParsers {
   private def Gte(l: Expr, r: Expr): Expr = Not(Lt(l, r))
   private def And(l: Expr, r: Expr): Expr = If(l, r, F)
   private def Or(l: Expr, r: Expr): Expr = If(l, T, r)
+  private def Seqn(l: Expr, r: List[Expr]): Expr = r match {
+    case Nil => l
+    case rv :: seq => {
+      val param = fresh()
+      App(Fun(param, Seqn(rv, seq)), l)
+    }
+  }
 
   private var id = -1
   private def fresh(): String = {

@@ -35,7 +35,7 @@ object Implementation extends Template {
       case CloV(param, body, fenv) => interp(body, fenv + (param -> interp(arg, env)))
       case _ => error()
     }
-    case _ => NumV(1)
+    case _ => error()
   }
 
   def interpMain(expr: Expr): Value = interp(expr, Map())

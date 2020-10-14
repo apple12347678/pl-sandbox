@@ -25,4 +25,7 @@ class Spec extends SpecBase {
   test(run("(3 > 3)"), "false")
   test(run("(3 < 3)"), "false")
 
+  test(run("{ 1; 2 }"), "2")
+  test(run("{ false; 3; true }"), "true")
+
 }
