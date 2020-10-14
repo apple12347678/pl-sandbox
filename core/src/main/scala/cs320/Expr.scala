@@ -39,7 +39,7 @@ object Expr extends RegexParsers {
     }
 
   private lazy val e: Parser[Expr] =
-    wrapC(str ~ ("=>" ~> expr)) ^^ { case p ~ b => Fun(p, b) } |
+    str ~ ("=>" ~> expr) ^^ { case p ~ b => Fun(p, b) } | e1
     wrapC(rep1sep(expr, ";")) ^^ {
       case Nil => error("Seqn cannot be empty")
       case l :: r => Seqn(l, r)
@@ -69,7 +69,7 @@ object Expr extends RegexParsers {
       case (l,  _  ~ r) => Sub(l, r)
     }} | wrapR(e4)
 
-  private lazy val e5: Parser[Expr] = "!" ~> e5 ^^ Not | e6
+  private lazy val e5: Parser[Expr] = "-" ~> e5 ^^ Neg | "!" ~> e5 ^^ Not | e6
 
   private lazy val e6: Parser[Expr] =
     x ^^ Id | n ^^ NumE | b ^^ BoolE |
@@ -85,6 +85,7 @@ object Expr extends RegexParsers {
   private val F = BoolE(false)
   private def Val(n: String, e: Expr, b: Expr) = App(Fun(n, b), e)
   private def Not(e: Expr): Expr = If(e, F, T)
+  private def Neg(n: Expr): Expr = Sub(NumE(0), n)
   private def Neq(l: Expr, r: Expr): Expr = Not(Eq(l, r))
   private def Lte(l: Expr, r: Expr): Expr = {
     val lv, rv = fresh()
