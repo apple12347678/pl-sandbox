@@ -30,12 +30,12 @@ object Implementation extends Template {
     }
     case Eq(l, r) => numToBoolOp(_ == _)(interp(l, env), interp(r, env))
     case Lt(l, r) => numToBoolOp(_ < _)(interp(l, env), interp(r, env))
+    case Id(name) => env.getOrElse(name, error())
     case Fun(param, body) => CloV(param, body, env)
     case App(func, arg) => interp(func, env) match {
       case CloV(param, body, fenv) => interp(body, fenv + (param -> interp(arg, env)))
       case _ => error()
     }
-    case Id(name) => env.getOrElse(name, error())
     case _ => error()
   }
 

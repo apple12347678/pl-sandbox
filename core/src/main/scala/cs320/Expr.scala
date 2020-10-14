@@ -9,21 +9,20 @@ case class NumE(num: Int) extends Expr
 case class BoolE(value: Boolean) extends Expr
 case class Add(left: Expr, right: Expr) extends Expr
 case class Sub(left: Expr, right: Expr) extends Expr
-case class Id(name: String) extends Expr
-case class Fun(param: String, body: Expr) extends Expr
-case class App(fun: Expr, arg: Expr) extends Expr
 case class Eq(left: Expr, right: Expr) extends Expr
 case class Lt(left: Expr, right: Expr) extends Expr
 case class If(condition: Expr, trueBranch: Expr, falseBranch: Expr) extends Expr
+case class Id(name: String) extends Expr
+case class Fun(param: String, body: Expr) extends Expr
+case class App(fun: Expr, arg: Expr) extends Expr
 
 object Expr extends RegexParsers {
 
   def wrapC[T](rule: Parser[T]): Parser[T] = "{" ~> rule <~ "}"
   def wrapR[T](rule: Parser[T]): Parser[T] = "(" ~> rule <~ ")"
+  def wrapT[T](rule: Parser[T]): Parser[T] = "[" ~> rule <~ "]"
 
   private lazy val keywords = Set("val", "if", "else", "val", "true", "false")
-
-  private lazy val str: Parser[String] = "[a-zA-Z_][a-zA-Z0-9_]*".r.withFilter(!keywords(_))
 
   private lazy val n: Parser[Int] = "-?[0-9]+".r ^^ BigInt.apply
 
@@ -32,15 +31,21 @@ object Expr extends RegexParsers {
   private lazy val x: Parser[String] = "[a-zA-Z_][a-zA-Z0-9_]*".r.withFilter(!keywords(_))
 
   private lazy val expr: Parser[Expr] =
-    e ~ rep(wrapR(expr) ^^ EApp) ^^ {
+    e ~ rep(wrapR(repsep(expr, ",")) ^^ EApp) ^^ {
       case e ~ es => es.foldLeft(e){
-        case (e, EApp(a)) => App(e, a)
+        case (e, EApp(as)) => MApp(e, as)
       }
     }
 
   private lazy val e: Parser[Expr] =
-    str ~ ("=>" ~> expr) ^^ { case p ~ b => Fun(p, b) } | e1
-    wrapC(rep1sep(expr, ";")) ^^ {
+    (x <~ "=>") ~ e ^^ { case p ~ b => Fun(p, b) } |
+    (wrapR(repsep(x, ",")) <~ "=>") ~ e ^^ {
+      case ps ~ b =>
+        if (dupCheck(ps))
+          error(s"Duplicated parameters: ${ps.mkString(", ")}")
+        MFun(ps, b)
+    } |
+    wrapT(rep1sep(expr, ";")) ^^ {
       case Nil => error("Seqn cannot be empty")
       case l :: r => Seqn(l, r)
     } | e1
@@ -77,8 +82,8 @@ object Expr extends RegexParsers {
     ("val" ~> x <~ "=") ~ e ~ (";" ~> e) ^^ { case x ~ e ~ b => Val(x, e, b) } |
     wrapC(e)
 
-  sealed trait E
-  case class EApp(a: Expr) extends E
+  private sealed trait E
+  private case class EApp(as: List[Expr]) extends E
 
   // Desugaring
   private val T = BoolE(true)
@@ -103,6 +108,16 @@ object Expr extends RegexParsers {
     case rv :: seq => {
       val param = fresh()
       App(Fun(param, Seqn(rv, seq)), l)
+    }
+  }
+  private def MFun(params: List[String], body: Expr): Expr = {
+    params.foldLeft(body){
+      case (acc: Expr, param: String) => Fun(param, acc)
+    }
+  }
+  private def MApp(expr: Expr, args: List[Expr]): Expr = {
+    args.foldLeft(expr){
+      case (acc: Expr, arg: Expr) => App(acc, arg)
     }
   }
 

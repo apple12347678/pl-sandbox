@@ -26,6 +26,7 @@ class Spec extends SpecBase {
   test(run("1 != 2"), "true")
   test(run("1 > 1"), "false")
   test(run("1 >= 1"), "true")
+  test(run("[1; 3]"), "3")
 
   /* Write your own tests */
 
@@ -104,16 +105,11 @@ class Spec extends SpecBase {
   testExc(run("k"), "")
 
   //Function & Application
-  // test(run("{x => x + 6}"), "<function>")
-  // test(run("(y => y + 6)(5)"), "11")
-  // test(run("(x => y => z => (x + y + z))(1)(2)(3)"), "6")
-  // test(run("(x => y => w => x + y * w)(2)(3)(4)"), "14")
-  // test(run("((x, y, z) => x + y / z)(2, 6, 4)"), "3")
-  // test(run("((x, w) => w * x + 2)(2, 3)"), "8")
-  // test(run("(x => y => z => x * y * z)(1)"), "<function>")
-  // testExc(run("false(2)"), "type error: calling non-callable identifier")
-  // testExc(run("(1 :: 2 :: Nil)(5)(6)"), "type error: calling non-callable identifier")
-  // testExc(run("(1, 2, 3)(2, 5)"), "type error: calling non-callable identifier")
-  // testExc(run("((x, y, z) => x * y / z)(1, 2)"), "function call error: parameter count mismatch")
+  test(run("{x => x + 6}"), "<lambda x>")
+  test(run("{y => y + 6}(5)"), "11")
+  test(run("{x => y => z => x + y + z}(1)(2)(3)"), "6")
+  test(run("{(x, w) => w - x + 2}(2, 3)"), "1")
+  test(run("{x => y => z => x - y + z}(1)"), "<lambda y>")
+  testExc(run("false(2)"), "")
 
 }
