@@ -5,7 +5,6 @@ sealed trait Value
 object Value {
 
   type Env = Map[String, Value]
-  type Addr = Int
 
   case class NumV(n: Int) extends Value
   case class BoolV(value: Boolean) extends Value

@@ -2,8 +2,8 @@ package cs320
 
 trait Template {
 
-  def run(str: String): String = Value.show(interp(Expr(str)))
+  def run(str: String): String = Value.show(interpMain(Expr(str)))
 
-  def interp(expr: Expr): Value
+  def interpMain(expr: Expr): Value
 
 }

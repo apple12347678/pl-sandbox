@@ -32,7 +32,7 @@ object Main {
 
       for (expr <- opt) {
         lift {
-          val result = Implementation.interp(expr)
+          val result = Implementation.interpMain(expr)
           println(s"  ${C}Result:$RESET ${Value.show(result)}")
         }
       }
