@@ -35,6 +35,7 @@ object Implementation extends Template {
       case CloV(param, body, fenv) => interp(body, fenv + (param -> interp(arg, env)))
       case _ => error()
     }
+    case Id(name) => env.getOrElse(name, error())
     case _ => error()
   }
 

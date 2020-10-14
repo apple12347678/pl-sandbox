@@ -10,10 +10,8 @@ case class BoolE(value: Boolean) extends Expr
 case class Add(left: Expr, right: Expr) extends Expr
 case class Sub(left: Expr, right: Expr) extends Expr
 case class Id(name: String) extends Expr
-// case class Val(name: String, expression: Expr, body: Expr) extends Expr
 case class Fun(param: String, body: Expr) extends Expr
 case class App(fun: Expr, arg: Expr) extends Expr
-// case class Seqn(left: Expr, right: List[Expr]) extends Expr
 case class Eq(left: Expr, right: Expr) extends Expr
 case class Lt(left: Expr, right: Expr) extends Expr
 case class If(condition: Expr, trueBranch: Expr, falseBranch: Expr) extends Expr
@@ -41,15 +39,6 @@ object Expr extends RegexParsers {
     }
 
   private lazy val e: Parser[Expr] =
-    n ^^ NumE | str ^^ Id |
-    wrapR((expr <~ "+") ~ expr) ^^ { case l ~ r => Add(l, r) } |
-    wrapR((expr <~ "-") ~ expr) ^^ { case l ~ r => Sub(l, r) } |
-    wrapR((expr <~ "==") ~ expr) ^^ { case l ~ r => Eq(l, r) } |
-    wrapR((expr <~ "!=") ~ expr) ^^ { case l ~ r => Neq(l, r) } |
-    wrapR((expr <~ "<") ~ expr) ^^ { case l ~ r => Lt(l, r) } |
-    wrapR((expr <~ "<=") ~ expr) ^^ { case l ~ r => Lte(l, r) } |
-    wrapR((expr <~ ">") ~ expr) ^^ { case l ~ r => Gt(l, r) } |
-    wrapR((expr <~ ">=") ~ expr) ^^ { case l ~ r => Gte(l, r) } |
     wrapC(str ~ ("=>" ~> expr)) ^^ { case p ~ b => Fun(p, b) } |
     wrapC(rep1sep(expr, ";")) ^^ {
       case Nil => error("Seqn cannot be empty")
@@ -57,14 +46,32 @@ object Expr extends RegexParsers {
     } | e1
 
   private lazy val e1: Parser[Expr] =
-    rep1sep(e2, "||") ^^ (_.reduceLeft(Or))
+    rep1sep(e2, "||") ^^ (_.reduceLeft(Or)) | wrapR(e1)
 
   private lazy val e2: Parser[Expr] =
-    rep1sep(e3, "&&") ^^ (_.reduceLeft(And))
+    rep1sep(e3, "&&") ^^ (_.reduceLeft(And)) | wrapR(e2)
 
-  private lazy val e3: Parser[Expr] = "!" ~> e3 ^^ Not | e4
+  private lazy val e3: Parser[Expr] =
+    e4 ~ rep(("==" | "!=" | "<=" | "<" | ">=" | ">") ~ e4) ^^ {
+      case e ~ es => es.foldLeft(e){
+        case (l, "==" ~ r) => Eq(l, r)
+        case (l, "!=" ~ r) => Neq(l, r)
+        case (l, "<"  ~ r) => Lt(l, r)
+        case (l, "<=" ~ r) => Lte(l, r)
+        case (l, ">"  ~ r) => Gt(l, r)
+        case (l,   _  ~ r) => Gte(l, r)
+      }
+    } | wrapR(e3)
 
   private lazy val e4: Parser[Expr] =
+    e5 ~ rep(("+" | "-") ~ e5) ^^ { case e ~ es => es.foldLeft(e){
+      case (l, "+" ~ r) => Add(l, r)
+      case (l,  _  ~ r) => Sub(l, r)
+    }} | wrapR(e4)
+
+  private lazy val e5: Parser[Expr] = "!" ~> e5 ^^ Not | e6
+
+  private lazy val e6: Parser[Expr] =
     x ^^ Id | n ^^ NumE | b ^^ BoolE |
     ("if" ~> wrapR(e)) ~ e ~ ("else" ~> e) ^^ { case c ~ t ~ f => If(c, t, f) } |
     ("val" ~> x <~ "=") ~ e ~ (";" ~> e) ^^ { case x ~ e ~ b => Val(x, e, b) } |
