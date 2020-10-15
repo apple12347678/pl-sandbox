@@ -19,26 +19,58 @@ object Implementation extends Template {
     case _ => error()
   }
 
-  def interp(expr: Expr, env: Env): Value = expr match {
-    case NumE(n) => NumV(n)
-    case BoolE(b) => BoolV(b)
-    case Add(l, r) => numOp(_ + _)(interp(l, env), interp(r, env))
-    case Sub(l, r) => numOp(_ - _)(interp(l, env), interp(r, env))
-    case If(condition, tBranch, fBranch) => interp(condition, env) match {
-      case BoolV(b) => if (b) interp(tBranch, env) else interp(fBranch, env)
+  def malloc(store: Store) = store.foldLeft[Addr](0){
+    case (acc: Addr, (addr: Addr, _)) => if (acc > addr) acc else addr
+  } + 1
+
+  def interp(expr: Expr, env: Env, store: Store): (Value, Store) = expr match {
+    case NumE(n) => (NumV(n), store)
+    case BoolE(b) => (BoolV(b), store)
+    case Add(l, r) => {
+      val (lv, m1) = interp(l, env, store)
+      val (rv, m2) = interp(r, env, m1)
+      (numOp(_ + _)(lv, rv), m2)
+    }
+    case Sub(l, r) => {
+      val (lv, m1) = interp(l, env, store)
+      val (rv, m2) = interp(r, env, m1)
+      (numOp(_ - _)(lv, rv), m2)
+    }
+    case Eq(l, r) => {
+      val (lv, m1) = interp(l, env, store)
+      val (rv, m2) = interp(r, env, m1)
+      (numToBoolOp(_ == _)(lv, rv), m2)
+    }
+    case Lt(l, r) => {
+      val (lv, m1) = interp(l, env, store)
+      val (rv, m2) = interp(r, env, m1)
+      (numToBoolOp(_ < _)(lv, rv), m2)
+    }
+    case If(condition, tBranch, fBranch) => {
+      val (condv, m1) = interp(condition, env, store)
+      condv match {
+        case BoolV(b) => if (b) interp(tBranch, env, m1) else interp(fBranch, env, m1)
+        case _ => error()
+      }
+    }
+    case Set(name, expr) => {
+      val addr = env.getOrElse(name, error())
+      val (v, m1) = interp(expr, env, store)
+      (v, m1 + (addr -> v))
+    }
+    case Id(name) => (store.getOrElse(env.getOrElse(name, error()), error()), store)
+    case Fun(param, body) => (CloV(param, body, env), store)
+    case App(func, arg) => interp(func, env, store) match {
+      case (CloV(param, body, fenv), m1) => {
+        val (pv, m2) = interp(arg, env, m1)
+        val addr = malloc(m2)
+        interp(body, fenv + (param -> addr), m2 + (addr -> pv))
+      }
       case _ => error()
     }
-    case Eq(l, r) => numToBoolOp(_ == _)(interp(l, env), interp(r, env))
-    case Lt(l, r) => numToBoolOp(_ < _)(interp(l, env), interp(r, env))
-    case Id(name) => env.getOrElse(name, error())
-    case Fun(param, body) => CloV(param, body, env)
-    case App(func, arg) => interp(func, env) match {
-      case CloV(param, body, fenv) => interp(body, fenv + (param -> interp(arg, env)))
-      case _ => error()
-    }
-    case _ => error()
+    // case _ => (NumV(1), store)
   }
 
-  def interpMain(expr: Expr): Value = interp(expr, Map())
+  def interpMain(expr: Expr): Value = interp(expr, Map(), Map())._1
 
 }
