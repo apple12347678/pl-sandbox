@@ -1,7 +1,7 @@
 package cs320
 
 import scala.util.parsing.combinator._
-import scala.collection.immutable._
+import scala.collection.immutable.{Set => ISet}
 
 sealed trait Expr
 
@@ -18,11 +18,10 @@ case class App(fun: Expr, arg: Expr) extends Expr
 
 object Expr extends RegexParsers {
 
-  def wrapC[T](rule: Parser[T]): Parser[T] = "{" ~> rule <~ "}"
-  def wrapR[T](rule: Parser[T]): Parser[T] = "(" ~> rule <~ ")"
-  def wrapT[T](rule: Parser[T]): Parser[T] = "[" ~> rule <~ "]"
+  private def wrapC[T](rule: Parser[T]): Parser[T] = "{" ~> rule <~ "}"
+  private def wrapR[T](rule: Parser[T]): Parser[T] = "(" ~> rule <~ ")"
 
-  private lazy val keywords = Set("val", "if", "else", "val", "true", "false")
+  private lazy val keywords = ISet("val", "if", "else", "val", "true", "false")
 
   private lazy val n: Parser[Int] = "-?[0-9]+".r ^^ BigInt.apply
 
@@ -45,7 +44,7 @@ object Expr extends RegexParsers {
           error(s"Duplicated parameters: ${ps.mkString(", ")}")
         MFun(ps, b)
     } |
-    wrapT(rep1sep(expr, ";")) ^^ {
+    wrapC(rep1sep(expr, ";")) ^^ {
       case Nil => error("Seqn cannot be empty")
       case l :: r => Seqn(l, r)
     } | e1
@@ -66,13 +65,13 @@ object Expr extends RegexParsers {
         case (l, ">"  ~ r) => Gt(l, r)
         case (l,   _  ~ r) => Gte(l, r)
       }
-    } | wrapR(e3)
+    }
 
   private lazy val e4: Parser[Expr] =
     e5 ~ rep(("+" | "-") ~ e5) ^^ { case e ~ es => es.foldLeft(e){
       case (l, "+" ~ r) => Add(l, r)
       case (l,  _  ~ r) => Sub(l, r)
-    }} | wrapR(e4)
+    }}
 
   private lazy val e5: Parser[Expr] = "-" ~> e5 ^^ Neg | "!" ~> e5 ^^ Not | e6
 
@@ -80,7 +79,7 @@ object Expr extends RegexParsers {
     x ^^ Id | n ^^ NumE | b ^^ BoolE |
     ("if" ~> wrapR(e)) ~ e ~ ("else" ~> e) ^^ { case c ~ t ~ f => If(c, t, f) } |
     ("val" ~> x <~ "=") ~ e ~ (";" ~> e) ^^ { case x ~ e ~ b => Val(x, e, b) } |
-    wrapC(e)
+    wrapR(e)
 
   private sealed trait E
   private case class EApp(as: List[Expr]) extends E
@@ -127,7 +126,7 @@ object Expr extends RegexParsers {
     s"$$x$id"
   }
 
-  def dupCheck(ss: List[String]): Boolean = ss.distinct.length != ss.length
+  private def dupCheck(ss: List[String]): Boolean = ss.distinct.length != ss.length
 
   def apply(str: String): Expr = parseAll(expr, str).get
 }
