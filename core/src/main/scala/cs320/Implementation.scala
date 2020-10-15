@@ -4,17 +4,22 @@ import Value._
 
 object Implementation extends Template {
 
-  def numOp(f: (Int, Int) => Int): (Value, Value) => NumV = (l, r) => (l, r) match {
+  def strict(value: Value): Value = value match {
+    case ExprV(expr, env) => strict(interp(expr, env))
+    case e => e
+  }
+
+  def numOp(f: (Int, Int) => Int): (Value, Value) => NumV = (l, r) => (strict(l), strict(r)) match {
     case (NumV(ln), NumV(rn)) => NumV(f(ln, rn))
     case _ => error()
   }
 
-  def boolOp(f: (Boolean, Boolean) => Boolean): (Value, Value) => BoolV = (l, r) => (l, r) match {
+  def boolOp(f: (Boolean, Boolean) => Boolean): (Value, Value) => BoolV = (l, r) => (strict(l), strict(r)) match {
     case (BoolV(lb), BoolV(rb)) => BoolV(f(lb, rb))
     case _ => error()
   }
 
-  def numToBoolOp(f: (Int, Int) => Boolean): (Value, Value) => BoolV = (l, r) => (l, r) match {
+  def numToBoolOp(f: (Int, Int) => Boolean): (Value, Value) => BoolV = (l, r) => (strict(l), strict(r)) match {
     case (NumV(lb), NumV(rb)) => BoolV(f(lb, rb))
     case _ => error()
   }
@@ -33,12 +38,12 @@ object Implementation extends Template {
     case Id(name) => env.getOrElse(name, error())
     case Fun(param, body) => CloV(param, body, env)
     case App(func, arg) => interp(func, env) match {
-      case CloV(param, body, fenv) => interp(body, fenv + (param -> interp(arg, env)))
+      case CloV(param, body, fenv) => interp(body, fenv + (param -> ExprV(arg, env)))
       case _ => error()
     }
     case _ => error()
   }
 
-  def interpMain(expr: Expr): Value = interp(expr, Map())
+  def interpMain(expr: Expr): Value = strict(interp(expr, Map()))
 
 }

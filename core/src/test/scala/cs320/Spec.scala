@@ -26,7 +26,6 @@ class Spec extends SpecBase {
   test(run("1 != 2"), "true")
   test(run("1 > 1"), "false")
   test(run("1 >= 1"), "true")
-  test(run("[1; 3]"), "3")
 
   /* Write your own tests */
 
@@ -39,10 +38,10 @@ class Spec extends SpecBase {
   /* shadowing */
   test(run("""
     val x = 4;
-    ({
+    ((
       val x = 5;
       x + 3
-    } + x)
+    ) + x)
   """), "12")
 
   /* type errors */
