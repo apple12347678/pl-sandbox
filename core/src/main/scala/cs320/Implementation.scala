@@ -5,7 +5,14 @@ import Value._
 object Implementation extends Template {
 
   def strict(value: Value): Value = value match {
-    case ExprV(expr, env) => strict(interp(expr, env))
+    case ev@ExprV(expr, env, cache) => cache match {
+      case Some(v) => v
+      case None => {
+        val v = interp(expr, env)
+        ev.cache = Some(v)
+        v
+      }
+    }
     case e => e
   }
 
@@ -38,7 +45,7 @@ object Implementation extends Template {
     case Id(name) => env.getOrElse(name, error())
     case Fun(param, body) => CloV(param, body, env)
     case App(func, arg) => interp(func, env) match {
-      case CloV(param, body, fenv) => interp(body, fenv + (param -> ExprV(arg, env)))
+      case CloV(param, body, fenv) => interp(body, fenv + (param -> ExprV(arg, env, None)))
       case _ => error()
     }
     case _ => error()

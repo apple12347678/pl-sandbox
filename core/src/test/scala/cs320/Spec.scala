@@ -111,4 +111,6 @@ class Spec extends SpecBase {
   test(run("{x => y => z => x - y + z}(1)"), "<lambda y>")
   testExc(run("false(2)"), "")
 
+  test(run("{y => 1}({x => z})"), "1")
+
 }
