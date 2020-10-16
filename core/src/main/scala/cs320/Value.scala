@@ -15,7 +15,7 @@ object Value {
     case NumV(n) => n.toString
     case BoolV(v) => v.toString
     case CloV(p, b, e) => s"<lambda ${p}>"
-    case _: ExprV => "<expr>"
+    case ExprV(e, env, c) => s"<expr cache=${c} e=${show(Implementation.interp(e, env))}>"
   }
 
 }

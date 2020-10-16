@@ -51,6 +51,8 @@ object Implementation extends Template {
     case _ => error()
   }
 
-  def interpMain(expr: Expr): Value = strict(interp(expr, Map()))
+  def interpMain(expr: Expr): Value = interp(expr, Map())
+
+  def interpStrict(expr: Expr): Value = strict(interpMain(expr))
 
 }
