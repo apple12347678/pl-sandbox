@@ -2,10 +2,10 @@ package cs320
 
 trait Template {
 
-  def run(str: String): String = Value.show(interpStrict(Expr(str)))
+  def strict(value: Value): Value
+
+  def run(str: String): String = Value.show(strict(interpMain(Expr(str))))
 
   def interpMain(expr: Expr): Value
-
-  def interpStrict(expr: Expr): Value
 
 }

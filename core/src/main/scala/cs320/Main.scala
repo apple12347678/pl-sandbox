@@ -33,7 +33,9 @@ object Main {
       for (expr <- opt) {
         lift {
           val result = Implementation.interpMain(expr)
+          val strict = Implementation.strict(result)
           println(s"  ${C}Result:$RESET ${Value.show(result)}")
+          println(s"  ${C}Strict:$RESET ${Value.show(strict)}")
         }
       }
     }
